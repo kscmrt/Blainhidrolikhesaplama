@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Üretim Takibi</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="sidebar.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Üretim Takibi</h1>
+                <p>Üretim aşamasındaki projeleri izleyin</p>
+            </div>
+            <div class="header-actions">
+                <button id="summaryReportBtn" class="btn btn-save"
+                    style="background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: rgba(16, 185, 129, 0.3);">
+                    📊 İhtiyaç Raporu
+                </button>
+                <button id="backBtn" class="btn btn-secondary">
+                    ← Ana Sayfa
+                </button>
+            </div>
+        </header>
+
+        <section class="glass-panel fade-in">
+            <div class="section-title">
+                <div class="icon">🔍</div>
+                <span>Filtrele</span>
+            </div>
+            <div class="input-group">
+                <label for="componentFilter">Bileşen Filtrele:</label>
+                <select id="componentFilter">
+                    <option value="all">Tümü</option>
+                    <option value="motor">Motor</option>
+                    <option value="pump">Pompa</option>
+                    <option value="cylinder">Silindir</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="production-list fade-in">
+            <div class="table-container glass-panel" style="padding: 0; overflow: hidden;">
+                <table id="productionTable">
+                    <thead>
+                        <tr>
+                            <th>Proje No</th>
+                            <th>Müşteri</th>
+                            <th>Tarih</th>
+                            <th>Silindir</th>
+                            <th>Motor</th>
+                            <th>Pompa</th>
+                            <th>Valfler</th>
+                            <th>Ünite</th>
+                            <th>Aksesuarlar</th>
+                            <th>Revizyon</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productionBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <script src="data.js"></script>
+    <script>
+        // Back to main page
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        // Open summary report
+        document.getElementById('summaryReportBtn').addEventListener('click', () => {
+            window.location.href = 'summary_report.html';
+        });
+
+        function loadProductionProjects() {
+            try {
+                const projects = JSON.parse(localStorage.getItem('savedProjects') || '[]');
+                return projects.filter(p => p.status === 'production');
+            } catch (e) {
+                console.warn('LocalStorage access failed in production.html:', e);
+                return [];
+            }
+        }
+
+        function renderProduction(filter = 'all') {
+            const projects = loadProductionProjects();
+            const tbody = document.getElementById('productionBody');
+            tbody.innerHTML = '';
+
+            const filtered = projects.filter(p => {
+                if (filter === 'all') return true;
+                // Simple filter implementation - check if any component string contains the filter text
+                const searchStr = JSON.stringify(p).toLowerCase();
+                return searchStr.includes(filter);
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:40px; color:var(--text-muted);">Kayıtlı üretim siparişi bulunamadı.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const date = new Date(p.savedDate);
+                const dateStr = date.toLocaleDateString('tr-TR');
+
+                const comps = p.components || {};
+                const inputs = p.inputs || {};
+
+                // Cylinder Detail: Type x Count x Travel
+                // Cylinder Detail: Type x Count x Stroke
+                const cylType = p.selectedCylinder || '-';
+                const cylCount = inputs.cylinderCount || '1';
+                const travel = parseFloat(inputs.travelDistance) || 0;
+                const suspension = inputs.suspension || '2:1';
+                // Robust buffer reading (handle 0 correctly)
+                const buffer = (inputs.buffer !== undefined && inputs.buffer !== null && inputs.buffer !== '')
+                    ? Number(inputs.buffer)
+                    : 300;
+
+                // Calculate Stroke (H13 logic from app.js)
+                let stroke = 0;
+                if (suspension === '1:1') {
+                    stroke = travel + buffer;
+                } else {
+                    stroke = (travel + buffer) / 2;
+                }
+
+                // Format: 2 x 63x6x4650
+                const cylinderDetail = cylType !== '-' ? `${cylCount} x ${cylType}x${stroke.toFixed(0)}` : '-';
+
+                // Motor Detail
+                let motor = comps.motor || p.selectedMotor || '-';
+                if (motor !== '-' && typeof motors !== 'undefined') {
+                    const motorObj = motors.find(m => m.name === motor);
+                    if (motorObj) {
+                        motor = `${motorObj.name} <span style="color:var(--text-muted); font-size:0.8rem;">(${motorObj.kw} kW)</span>`;
+                    }
+                }
+
+                // Pump Detail
+                let pump = comps.pump || p.selectedPump || '-';
+                if (pump !== '-' && typeof pumps !== 'undefined') {
+                    const pumpObj = pumps.find(pm => pm.name === pump);
+                    if (pumpObj) {
+                        pump = `${pumpObj.name} <span style="color:var(--text-muted); font-size:0.8rem;">(${pumpObj.flow} L/min)</span>`;
+                    }
+                }
+
+                // Valve Detail (Main + Rupture)
+                const mainValve = comps.mainValve || '-';
+                const ruptureValve = comps.ruptureValve || '-';
+                const valveDetail = (mainValve !== '-' || ruptureValve !== '-')
+                    ? `<div style="font-size:0.85rem;">${mainValve}<br><span style="color:var(--text-muted); font-size:0.75rem;">${ruptureValve}</span></div>`
+                    : '-';
+
+                // Power Unit Detail
+                const powerUnit = comps.powerUnit || p.selectedPowerUnit || '-';
+
+                // Accessories (Pressure Switches + Others)
+                let accessoriesList = [];
+
+                // Prioritize 'allAccessories' which contains everything selected
+                if (comps.allAccessories && Array.isArray(comps.allAccessories) && comps.allAccessories.length > 0) {
+                    accessoriesList = comps.allAccessories;
+                }
+                // Fallback for older records that might only have 'pressureSwitches'
+                else {
+                    const switches = comps.pressureSwitches || p.pressureSwitches;
+                    if (Array.isArray(switches) && switches.length > 0) {
+                        accessoriesList.push(...switches);
+                    }
+                }
+
+                // Format Accessories
+                const accessoriesDisplay = accessoriesList.length > 0
+                    ? `<ul style="margin:0; padding-left:15px; font-size:0.8rem; color:var(--text-muted);">${accessoriesList.map(a => `<li>${a}</li>`).join('')}</ul>`
+                    : '-';
+
+                // Revision Display - Show ALL revisions
+                let revisionDisplay = '-';
+
+                if (p.revisions && p.revisions.length > 0) {
+                    const totalRevisions = p.revisions.length;
+
+                    // Build a list of all revisions
+                    const revisionsList = p.revisions.map(rev => {
+                        const revDate = new Date(rev.date).toLocaleDateString('tr-TR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+
+                        const changesList = rev.changes.map(c => `<div style="margin-left: 10px; font-size: 0.65rem;">• ${c}</div>`).join('');
+
+                        return `
+                            <div style="margin-bottom: 8px; padding: 6px; background: rgba(255,255,255,0.03); border-radius: 4px; border-left: 2px solid var(--warning);">
+                                <div style="font-weight: 600; color: var(--warning); font-size: 0.7rem;">Rev. ${rev.revisionNumber}</div>
+                                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 2px;">${revDate}</div>
+                                <div style="margin-top: 4px; color: var(--text-main);">
+                                    ${changesList}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    revisionDisplay = `
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <div style="background: rgba(245, 158, 11, 0.2); color: var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; display: inline-block; margin-bottom: 8px;">
+                                ${totalRevisions} Revizyon
+                            </div>
+                            ${revisionsList}
+                        </div>
+                    `;
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="project-number">${p.projectNumber}</span></td>
+                    <td style="font-weight: 500;">${p.customerName}</td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
+                    <td><span class="status-badge success">${cylinderDetail}</span></td>
+                    <td>${motor}</td>
+                    <td>${pump}</td>
+                    <td>${valveDetail}</td>
+                    <td>${powerUnit}</td>
+                    <td>${accessoriesDisplay}</td>
+                    <td>${revisionDisplay}</td>
+                    <td>
+                        <button onclick="window.location.href='report.html?project=${p.projectNumber}'" 
+                                class="project-action-btn load-btn">
+                            📄 Rapor
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        document.getElementById('componentFilter').addEventListener('change', (e) => {
+            renderProduction(e.target.value);
+        });
+
+        // Initial render
+        renderProduction();
+    </script>
+</body>
+
+</html>

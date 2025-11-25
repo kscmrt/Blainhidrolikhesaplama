@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tüm Projeler</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="sidebar.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Tüm Projeler</h1>
+                <p>Kayıtlı projelerinizi yönetin</p>
+            </div>
+            <div class="header-actions">
+                <button id="backBtn" class="btn btn-secondary">
+                    ← Ana Sayfa
+                </button>
+            </div>
+        </header>
+
+        <section class="glass-panel fade-in">
+            <div class="section-title">
+                <div class="icon">🔍</div>
+                <span>Filtrele</span>
+            </div>
+            <div class="input-group">
+                <input type="text" id="searchFilter" placeholder="Proje No, Müşteri veya Tarih ile ara..."
+                    class="search-input">
+            </div>
+        </section>
+
+        <section class="production-list fade-in">
+            <div class="table-container glass-panel" style="padding: 0; overflow: hidden;">
+                <table id="projectsTable">
+                    <thead>
+                        <tr>
+                            <th>Proje No</th>
+                            <th>Müşteri</th>
+                            <th>Tarih</th>
+                            <th>Durum</th>
+                            <th>Silindir</th>
+                            <th>Motor</th>
+                            <th>Pompa</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectsBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <script src="data.js"></script>
+    <script>
+        // Back to main page
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        function loadAllProjects() {
+            try {
+                return JSON.parse(localStorage.getItem('savedProjects') || '[]');
+            } catch (e) {
+                console.warn('LocalStorage access failed:', e);
+                return [];
+            }
+        }
+
+        function deleteProject(projectNumber) {
+            if (!confirm(`Proje ${projectNumber} silinecek. Emin misiniz?`)) {
+                return;
+            }
+
+            const projects = loadAllProjects();
+            const filtered = projects.filter(p => p.projectNumber !== projectNumber);
+            localStorage.setItem('savedProjects', JSON.stringify(filtered));
+
+            renderProjects();
+            alert(`🗑️ Proje ${projectNumber} silindi.`);
+        }
+
+        function loadProject(projectNumber) {
+            // Save the project ID to load in localStorage so index.html can pick it up
+            localStorage.setItem('projectToLoad', projectNumber);
+            window.location.href = 'index.html';
+        }
+
+        function renderProjects(filter = '') {
+            const projects = loadAllProjects();
+            const tbody = document.getElementById('projectsBody');
+            tbody.innerHTML = '';
+
+            // Sort by date (newest first)
+            projects.sort((a, b) => new Date(b.savedDate) - new Date(a.savedDate));
+
+            const filtered = projects.filter(p => {
+                if (!filter) return true;
+                const searchStr = JSON.stringify(p).toLowerCase();
+                return searchStr.includes(filter.toLowerCase());
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-muted);">Kayıtlı proje bulunamadı.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const date = new Date(p.savedDate);
+                const dateStr = date.toLocaleDateString('tr-TR');
+                const comps = p.components || {};
+                const inputs = p.inputs || {};
+
+                // Cylinder Detail
+                const cylType = p.selectedCylinder || '-';
+                const cylCount = inputs.cylinderCount || '1';
+                const cylinderDetail = cylType !== '-' ? `${cylCount} x ${cylType}` : '-';
+
+                // Motor Detail
+                let motor = comps.motor || p.selectedMotor || '-';
+
+                // Pump Detail
+                let pump = comps.pump || p.selectedPump || '-';
+
+                // Status Badge
+                const isProduction = p.status === 'production';
+                const statusBadge = isProduction
+                    ? `<span class="status-badge success">Üretimde</span>`
+                    : `<span class="status-badge" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1;">Taslak</span>`;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="project-number">${p.projectNumber}</span></td>
+                    <td style="font-weight: 500;">${p.customerName}</td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">${dateStr}</td>
+                    <td>${statusBadge}</td>
+                    <td>${cylinderDetail}</td>
+                    <td>${motor}</td>
+                    <td>${pump}</td>
+                    <td>
+                        <div style="display: flex; gap: 6px;">
+                            <button onclick="loadProject('${p.projectNumber}')" class="project-action-btn load-btn">
+                                📂 Yükle
+                            </button>
+                            ${!isProduction ? `<button onclick="moveToProduction('${p.projectNumber}')" class="project-action-btn production-btn">
+                                🚚 Üretime Al
+                            </button>` : ''}
+                            <button onclick="deleteProject('${p.projectNumber}')" class="project-action-btn delete-btn">
+                                🗑️ Sil
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function moveToProduction(projectNumber) {
+            const projects = loadAllProjects();
+            const idx = projects.findIndex(p => p.projectNumber === projectNumber);
+            if (idx === -1) {
+                alert('Proje bulunamadı!');
+                return;
+            }
+
+            // Update project status
+            projects[idx].status = 'production';
+
+            localStorage.setItem('savedProjects', JSON.stringify(projects));
+            renderProjects();
+            alert(`✅ Proje ${projectNumber} üretime alındı!`);
+        }
+
+        document.getElementById('searchFilter').addEventListener('input', (e) => {
+            renderProjects(e.target.value);
+        });
+
+        // Initial render
+        renderProjects();
+    </script>
+</body>
+
+</html>

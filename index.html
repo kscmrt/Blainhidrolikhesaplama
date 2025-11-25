@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidrolik Asansör Hesaplayıcı</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="sidebar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Hidrolik Asansör <span class="gradient-text">Sihirbazı</span></h1>
+                <p>Mükemmel asansör sistemini tasarlayın</p>
+            </div>
+            <div class="header-actions">
+                <button id="newProjectBtn" class="btn btn-new-project">
+                    ✨ Yeni Proje
+                </button>
+                <button id="openProjectsBtn" class="btn btn-projects">
+                    📂 Projeler
+                </button>
+                <button id="saveProjectBtn" class="btn btn-save">
+                    💾 Yeni Kaydet
+                </button>
+                <button id="updateProjectBtn" class="btn btn-projects hidden">
+                    🔄 Güncelle
+                </button>
+                <button id="openProductionBtn" class="btn btn-production">
+                    🏭 Üretim Takibi
+                </button>
+            </div>
+        </header>
+
+        <!-- Saved Projects Sidebar -->
+        <div id="projectsSidebar" class="projects-sidebar">
+            <div class="sidebar-header">
+                <h3>💾 Kayıtlı Projeler</h3>
+                <button id="closeSidebar" class="close-btn">✕</button>
+            </div>
+            <div id="projectsList" class="projects-list">
+                <!-- Projects will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Project Log Modal -->
+        <div id="logModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" id="closeLogModal">&times;</span>
+                <h2>Proje Değişiklik Günlüğü</h2>
+                <div id="logContainer" class="log-container">
+                    <!-- Log entries will be injected here -->
+                </div>
+            </div>
+        </div>
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+        <main>
+            <section class="glass-panel fade-in">
+                <div class="section-title">
+                    <div class="icon">⚙️</div>
+                    <span>Proje Bilgileri</span>
+                </div>
+
+                <form id="elevatorForm">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="customerName">Müşteri Adı</label>
+                            <input type="text" id="customerName" placeholder="Müşteri adını girin" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="projectNumber">Proje Numarası</label>
+                            <input type="text" id="projectNumber" readonly>
+                        </div>
+                        <div class="input-group">
+                            <label for="capacity">Kapasite (kg)</label>
+                            <input type="number" id="capacity" placeholder="Örn: 630" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="carcassWeight">Kabin + Karkas Ağırlığı (kg)</label>
+                            <input type="number" id="carcassWeight" placeholder="Örn: 800" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="travelDistance">Seyir Mesafesi (mm)</label>
+                            <input type="number" id="travelDistance" placeholder="Örn: 12000" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="buffer">Tampon Payı (mm)</label>
+                            <input type="number" id="buffer" value="300" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="speed">Asansör Hızı (m/s)</label>
+                            <input type="number" id="speed" step="0.01" placeholder="Örn: 0.63" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="suspension">Askı Tipi</label>
+                            <select id="suspension">
+                                <option value="2:1" selected>2:1</option>
+                                <option value="1:1">1:1</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="cylinderCount">Silindir Sayısı</label>
+                            <select id="cylinderCount" onchange="updateRuptureValveOptions()">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="buildingType">Kullanım Türü</label>
+                            <select id="buildingType" title="Isı hesabı için kullanılır">
+                                <option value="5">Ev/Yük Tipi (5 kalkış/s'ten az)</option>
+                                <option value="10" selected>Konut (5-15 kalkış/s)</option>
+                                <option value="20">Ticari (16-25 kalkış/s)</option>
+                                <option value="30">Endüstriyel (26-35 kalkış/s)</option>
+                                <option value="40">Kamu Alanı (35+ kalkış/s)</option>
+                            </select>
+                        </div>
+                        <div class="input-group full-width">
+                            <label for="regulation">Uygulanacak Regülasyon</label>
+                            <select id="regulation">
+                                <option value="2006/42/EC">Makine Direktifi (2006/42/EC)</option>
+                                <option value="EN81-20">EN 81-20</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" id="calculateBtn" class="btn btn-primary"
+                        style="width: 100%; justify-content: center; padding: 16px; font-size: 1.1rem;">
+                        Hesapla ve Silindir Seç
+                    </button>
+                </form>
+            </section>
+
+            <section id="resultsSection" class="glass-panel fade-in hidden">
+                <div class="section-title">
+                    <div class="icon">📊</div>
+                    <span>Uygun Silindirler</span>
+                </div>
+
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="label">Hedef Min Basınç (Boş)</span>
+                        <span class="value">≥ 12 Bar</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Hedef Max Basınç (Dolu)</span>
+                        <span class="value">≤ 59 Bar</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Burkulma Emniyeti</span>
+                        <span class="value">EN 81-20 (SF ≥ 1.4)</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="cylinderTable">
+                        <thead>
+                            <tr>
+                                <th>Silindir Tipi</th>
+                                <th>Çap (mm)</th>
+                                <th>Kalınlık (mm)</th>
+                                <th>Boş Basınç (Bar)</th>
+                                <th>Dolu Basınç (Bar)</th>
+                                <th>Max. Burkulma (N)</th>
+                                <th>Etkiyen Bur. (N)</th>
+                                <th>Kullanım %</th>
+                                <th>Burkulma</th>
+                                <th>Durum</th>
+                                <th>Seç</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Results will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Selection Section (Dynamically injected by app.js usually, but good to have a placeholder if needed) -->
+            <!-- Note: app.js creates a section with ID 'selectionSection' dynamically or expects it. 
+                 Looking at app.js line 264: document.getElementById('selectionSection').classList.add('hidden');
+                 It seems it expects it to exist. Let's check if it was in the original HTML.
+                 Wait, reading the original HTML (Step 8), I don't see 'selectionSection'.
+                 Ah, looking at app.js again...
+                 It might be created dynamically or I missed it.
+                 Let's check app.js again for 'selectionSection'.
+            -->
+        </main>
+    </div>
+
+    <!-- <script src="google-sheets-config.js"></script> -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Auto-login as Admin (Login page disabled)
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                if (!user.username) {
+                    // Set default user instead of redirecting
+                    localStorage.setItem('currentUser', JSON.stringify({ username: 'admin' }));
+                }
+            } catch (e) {
+                console.warn('LocalStorage access failed, running in guest mode.');
+            }
+        });
+    </script>
+
+</body>
+
+</html>

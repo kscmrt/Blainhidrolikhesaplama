@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş - Hidrolik Proje Yönetimi</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-container h2 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: white;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <h2>Giriş</h2>
+        <input type="text" id="username" placeholder="Kullanıcı adı" />
+        <input type="password" id="password" placeholder="Şifre" />
+        <button id="loginBtn">Giriş Yap</button>
+        <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <script>
+        // Basit kullanıcı veri tabanı (localStorage) – örnek bir admin kullanıcı
+        const defaultUsers = [{ username: 'admin', password: 'admin123' }];
+
+        try {
+            if (!localStorage.getItem('users')) {
+                localStorage.setItem('users', JSON.stringify(defaultUsers));
+            }
+        } catch (e) {
+            console.warn('LocalStorage init failed:', e);
+        }
+
+        function getUsers() {
+            try {
+                return JSON.parse(localStorage.getItem('users') || '[]');
+            } catch (e) {
+                console.warn('LocalStorage read failed, using default:', e);
+                return defaultUsers;
+            }
+        }
+
+        function setCurrentUser(user) {
+            try {
+                localStorage.setItem('currentUser', JSON.stringify(user));
+            } catch (e) {
+                console.error('LocalStorage write failed:', e);
+                alert('Uyarı: Oturum bilgisi kaydedilemedi. Sayfa yenilendiğinde tekrar giriş yapmanız gerekebilir.');
+            }
+        }
+
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            let users = getUsers();
+            // Fallback if users is empty (e.g. storage failed completely)
+            if (users.length === 0) users = defaultUsers;
+
+            const found = users.find(u => u.username === username && u.password === password);
+
+            if (found) {
+                setCurrentUser({ username: found.username });
+                window.location.href = 'index.html';
+            } else {
+                document.getElementById('errorMsg').textContent = 'Kullanıcı adı veya şifre hatalı!';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -304,3 +304,14 @@
     color: var(--text-main);
     white-space: pre-wrap;
 }
+
+@media (max-width: 480px) {
+    .projects-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+
+    .projects-sidebar.open {
+        right: 0;
+    }
+}

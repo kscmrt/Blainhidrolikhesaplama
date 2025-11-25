@@ -511,22 +511,77 @@ tr:hover td {
 
 /* Responsive */
 @media (max-width: 768px) {
+    body {
+        padding: 20px 10px;
+    }
+
+    .container {
+        gap: 24px;
+    }
+
     header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 20px;
+    }
+
+    .header-content {
+        text-align: center;
     }
 
     .header-actions {
         width: 100%;
-        justify-content: flex-start;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        justify-content: stretch;
+    }
+
+    .btn {
+        justify-content: center;
+        width: 100%;
+        padding: 12px;
     }
 
     .glass-panel {
-        padding: 24px;
+        padding: 20px;
+        border-radius: var(--radius-lg);
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
 
     h1 {
         font-size: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        margin-bottom: 20px;
+    }
+
+    .status-bar {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .status-item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-actions {
+        grid-template-columns: 1fr;
+    }
+
+    h1 {
+        font-size: 1.75rem;
     }
 }
 
